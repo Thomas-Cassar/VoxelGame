@@ -5,6 +5,7 @@
 
 
 #include "Renderer.h"
+#include "VertexBufferLayout.h"
 
 extern "C"
 {//Use High Performance GPU
@@ -46,14 +47,35 @@ int main()
 	Renderer renderer;
 	Shader shader("res/shaders/basic.vertex", "res/shaders/basic.fragment");
 
+	float positions[] = {
+			-1.0f, -1.0f,   //0
+			 1.0f,  -1.0f,  //1
+			 0.0f, 1.0f,  //2
+			 
+	};
+
+	unsigned int indicies[] = {
+		0,1,2,
+	};
+	VertexArray va;
+	IndexBuffer ib(indicies, 3);
+	VertexBuffer vb(positions,2*3*sizeof(float));
+
+	VertexBufferLayout vbl;
+
+	vbl.Push<float>(2);
+	va.AddBuffer(vb, vbl);	
+
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
 		//Clear frame before starting next
-		glClearColor(0.1f, 0.2f, 0.8f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		renderer.Clear();
 
+		renderer.Draw(va,ib,shader);
+		shader.SetUniform4f("u_Color", 0.8f, 0.3f, 0.8f, 1.0f);
 		// Swap front and back buffers
 		glfwSwapBuffers(window);
 

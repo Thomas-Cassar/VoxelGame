@@ -1,12 +1,15 @@
 #pragma once
 #include <GL\glew.h>
 
+#include "VertexArray.h"
+#include "IndexBuffer.h"
 #include "Shader.h"
 
-#define ASSERT(x) if(!(x)) __debugbreak();
+#define ASSERT(x) if(!(x)) __debugbreak();//If GL error break
+//Wait until error clear
 #define GLCall(x) GLClearError();\
 	x;\
-	ASSERT(GLLogCall(#x,__FILE__,__LINE__))
+	ASSERT(GLLogCall(#x,__FILE__,__LINE__))//Log error to console
 
 void GLClearError();
 bool GLLogCall(const char* function, const char* file, int line);
@@ -17,6 +20,6 @@ private:
 public:
 	void Clear() const;
 	//void SetClearColor() const;
-	//void Draw(const VertexArray& va, const IndexBuffer& ib, const Shader& shader) const;
+	void Draw(const VertexArray& va, const IndexBuffer& ib, const Shader& shader) const;
 
 };
