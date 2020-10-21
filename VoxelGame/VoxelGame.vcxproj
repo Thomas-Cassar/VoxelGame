@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Dependencies\SimplexNoise\SimplexNoise.cpp" />
+    <ClCompile Include="Dependencies\Transvoxel.h" />
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\IndexBuffer.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -26,8 +28,10 @@
     <ClCompile Include="src\Shader.cpp" />
     <ClCompile Include="src\VertexBuffer.cpp" />
     <ClCompile Include="src\VertexArray.cpp" />
+    <ClCompile Include="src\VoxelChunk.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Dependencies\SimplexNoise\SimplexNoise.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\glm\glm.hpp" />
     <ClInclude Include="src\IndexBuffer.h" />
@@ -36,6 +40,7 @@
     <ClInclude Include="src\VertexBuffer.h" />
     <ClInclude Include="src\VertexArray.h" />
     <ClInclude Include="src\VertexBufferLayout.h" />
+    <ClInclude Include="src\VoxelChunk.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\basic.fragment" />

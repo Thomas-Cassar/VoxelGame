@@ -9,6 +9,9 @@
 
 #include "Camera.h"
 
+#include "VoxelChunk.h"
+
+
 /*
 extern "C"
 {//Use High Performance GPU
@@ -64,44 +67,15 @@ int main()
 	Renderer renderer;
 	Shader shader("res/shaders/basic.vertex", "res/shaders/basic.fragment");
 
-	float positions[] = {
-			 0.0f, 0.0f, 0.0f,   //0
-			 1.0f,  0.0f, 0.0f,   //1
-			 1.0f,  1.0f, 0.0f,  //2
-			 0.0f, 1.0f, 0.0f,	//3
-			0.0f, 0.0f, -1.0f,   //4
-			 1.0f,  0.0f, -1.0f,   //5
-			 1.0f,  1.0f, -1.0f,  //6
-			 0.0f, 1.0f, -1.0f,	//7
+	VoxelChunk chunktest(glm::vec3(0, 0, 0));
 
-	};
-
-	unsigned int indicies[] = {
-		// front
-		0, 1, 2,
-		2, 3, 0,
-		// right
-		1, 5, 6,
-		6, 2, 1,
-		// back
-		7, 6, 5,
-		5, 4, 7,
-		// left
-		4, 0, 3,
-		3, 7, 4,
-		// bottom
-		4, 5, 1,
-		1, 0, 4,
-		// top
-		3, 2, 6,
-		6, 7, 3
-	};
 	VertexArray va;
-	IndexBuffer ib(indicies, 36);
-	VertexBuffer vb(positions, 8 * 3 * sizeof(float));
+	IndexBuffer ib(chunktest.getIndexArray(), chunktest.getIndexCount());
+	VertexBuffer vb(chunktest.getVertexArray(), chunktest.getVertexFloatCount() * sizeof(float));
 
 	VertexBufferLayout vbl;
 
+	vbl.Push<float>(3);
 	vbl.Push<float>(3);
 	va.AddBuffer(vb, vbl);
 	
@@ -113,8 +87,11 @@ int main()
 	glm::mat4 mod = glm::mat4(1.0f);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	float g = 0;
-	bool up = true;
+
+	//wireframe
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
@@ -124,15 +101,6 @@ int main()
 
 		renderer.Draw(va, ib, shader);
 
-		shader.SetUniform4f("u_Color", 0.4f, g, 0.8f, 1.0f);
-		if (up)
-			g += .005f;
-		else
-			g -= .005f;
-		if (g >= .9f)
-			up = false;
-		if (g <= .1f)
-			up = true;
 		shader.SetUniformMat4f("u_MVP", mvp);
 
 		// Swap front and back buffers
