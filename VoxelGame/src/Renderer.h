@@ -5,6 +5,7 @@
 #include "IndexBuffer.h"
 #include "Shader.h"
 
+
 #define ASSERT(x) if(!(x)) __debugbreak();//If GL error break
 //Wait until error clear
 #define GLCall(x) GLClearError();\

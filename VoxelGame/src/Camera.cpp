@@ -1,16 +1,18 @@
 #include "Camera.h"
 
-Camera::Camera()
-	:Translation(4.0f,3.0f,3.0f),
+Camera::Camera(int widthin, int heightin)
+	:Translation(4.0f, 3.0f, 3.0f),
 	lastmousex(0.0f),
 	lastmousey(0.0f),
 	pitch(0.0f),
 	yaw(0.0f),
 	firstmouse(false),
-	Direction(glm::vec3(1,0,0)),
-	cameraFront(glm::normalize(Direction)+Translation)
+	Direction(glm::vec3(1, 0, 0)),
+	cameraFront(glm::normalize(Direction) + Translation),
+	width(widthin),
+	height(heightin)
 {
-
+proj = glm::perspective(glm::radians(70.0f), (float)width / (float)height, 0.1f, 1000.0f);
 }
 
 Camera::~Camera()
@@ -34,25 +36,22 @@ glm::mat4 Camera::GetViewMatrix()
 	return viewmatrix;
 }
 
-void Camera::moveForward()
+glm::mat4 Camera::GetProjMatrix()
 {
-	Translation += cameraspeed * cameraFront;
+	return proj;
 }
 
-void Camera::moveBackward()
+void Camera::moveForward(float distance)
 {
-	Translation -= cameraspeed * cameraFront;
+	Translation +=  distance * cameraFront;
 }
 
-void Camera::moveRight()
+
+void Camera::moveRight(float distance)
 {
-	Translation += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraspeed;
+	Translation += glm::normalize(glm::cross(cameraFront, cameraUp)) *  distance;
 }
 
-void Camera::moveLeft()
-{
-	Translation -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraspeed;
-}
 
 void Camera::newMousepos(float x, float y)
 {

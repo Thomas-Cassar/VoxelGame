@@ -6,16 +6,16 @@
 class VoxelChunk {
 private:
 	signed char VoxelData[chunksize+1][chunksize+1][chunksize+1];
-	glm::vec3 WorldLocation;
+	glm::i32vec3 chunkLocation;
 	int vertexfloatcount, indexcount;
 	float* vertexarray;
 	unsigned int* indexarray;
 public:
-	VoxelChunk(glm::vec3 world);
+	VoxelChunk(glm::i32vec3 world);
 	~VoxelChunk();
 	float* getVertexArray();
 	int getVertexFloatCount();
 	unsigned int* getIndexArray();
 	int getIndexCount();
-
+	glm::i32vec3 getChunkLocation();
 };

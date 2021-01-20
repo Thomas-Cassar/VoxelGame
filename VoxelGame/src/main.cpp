@@ -7,9 +7,9 @@
 #include "Renderer.h"
 #include "VertexBufferLayout.h"
 
-#include "Camera.h"
+#include "Player.h"
 
-#include "VoxelChunk.h"
+#include "ChunkManager.h"
 
 
 /*
@@ -67,23 +67,13 @@ int main()
 	Renderer renderer;
 	Shader shader("res/shaders/basic.vertex", "res/shaders/basic.fragment");
 
-	VoxelChunk chunktest(glm::vec3(0, 0, 0));
-
-	VertexArray va;
-	IndexBuffer ib(chunktest.getIndexArray(), chunktest.getIndexCount());
-	VertexBuffer vb(chunktest.getVertexArray(), chunktest.getVertexFloatCount() * sizeof(float));
-
-	VertexBufferLayout vbl;
-
-	vbl.Push<float>(3);
-	vbl.Push<float>(3);
-	va.AddBuffer(vb, vbl);
+	ChunkManager managerofChunks;
 	
 
-	Camera camera;
+	Player Player1(width,height,window);
 	
 	glm::mat4 mvp;
-	glm::mat4 proj = glm::perspective(glm::radians(70.0f), (float)width/(float)height, 0.1f, 1000.0f);
+	
 	glm::mat4 mod = glm::mat4(1.0f);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -91,49 +81,58 @@ int main()
 	//wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+	//Cull back faces
+	GLCall(glEnable(GL_CULL_FACE));
+	GLCall(glCullFace(GL_BACK));
+
+	float currentTime = 0;
+	float lastTime = 0;
+	float deltaTime = 0;
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
+		//Timing and FPS counter
+		lastTime = currentTime;
+		currentTime = glfwGetTime();
+		deltaTime = currentTime - lastTime;
+		if(floor(currentTime)-floor(lastTime)==1)
+		std::cout << 1/ deltaTime << "fps" <<std::endl;
+
+
 		//Clear frame before starting next
-		glClearColor(0.5f, 0.75f, 0.95f, 1.0f);
 		renderer.Clear();
 
-		renderer.Draw(va, ib, shader);
+		managerofChunks.updateChunks(glm::i32vec3(0,0,0));
 
-		shader.SetUniformMat4f("u_MVP", mvp);
+		//Draw new frame
+		VertexArray va;
+		IndexBuffer ib(managerofChunks.getActiveChunks().at(0)->getIndexArray(), managerofChunks.getActiveChunks().at(0)->getIndexCount());
+		VertexBuffer vb(managerofChunks.getActiveChunks().at(0)->getVertexArray(), managerofChunks.getActiveChunks().at(0)->getVertexFloatCount() * sizeof(float));
+
+		VertexBufferLayout vbl;
+
+		vbl.Push<float>(3);
+		vbl.Push<float>(3);
+		va.AddBuffer(vb, vbl);
+
+		renderer.Draw(va, ib, shader);
 
 		// Swap front and back buffers
 		glfwSwapBuffers(window);
 
 		// Poll for and process events
 		glfwPollEvents();
-		
-		
+		//Get input from user
 		double xpos, ypos;
 		glfwGetCursorPos(window, &xpos, &ypos);
-		camera.newMousepos((float)xpos, (float)ypos);
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		{
-			camera.moveForward();
-		}
+		Player1.getPlayerCamera()->newMousepos((float)xpos, (float)ypos);
+		Player1.updatePlayerInput(deltaTime);
 
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		{
-			camera.moveBackward();
-		}
-		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		{
-			camera.moveLeft();
-		}
-		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		{
-			camera.moveRight();
-		}
-
-		mvp = proj * camera.GetViewMatrix() * mod;
+		//Create MVP matrix
+		mvp = Player1.getPlayerCamera()->GetProjMatrix() * Player1.getPlayerCamera()->GetViewMatrix() * mod;
+		shader.SetUniformMat4f("u_MVP", mvp);
 	}
-
 
 }
 	glfwTerminate();

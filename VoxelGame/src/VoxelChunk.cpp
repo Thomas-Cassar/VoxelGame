@@ -6,8 +6,8 @@
 
 #define vertexatributecount 6
 
-VoxelChunk::VoxelChunk(glm::vec3 world)
-	:WorldLocation(world),
+VoxelChunk::VoxelChunk(glm::i32vec3 world)
+	:chunkLocation(world),
 	vertexfloatcount(0),
 	indexcount(0)
 {
@@ -19,7 +19,7 @@ VoxelChunk::VoxelChunk(glm::vec3 world)
 		{
 			for (k = 0; k < chunksize + 1; k++)
 			{
-				if (((cnoise.noise((float)(i) / 30, (float)(k) / 30) + 1) * 10) > j)
+				if (((cnoise.noise((float)(i) / 30, (float)(k) / 30) + 1) * 10) < j)
 				VoxelData[i][j][k] = 1;
 				else
 				VoxelData[i][j][k] = -1;
@@ -217,6 +217,8 @@ VoxelChunk::VoxelChunk(glm::vec3 world)
 	std::cout << ver << "/" << vertexfloatcount << "verticies made/vertcices allocated " << ind << "/" << indexcount << " indicies made/indicies allocated" << std::endl;
 }
 
+
+
 VoxelChunk::~VoxelChunk()
 {
 	delete vertexarray;
@@ -241,5 +243,10 @@ unsigned int* VoxelChunk::getIndexArray()
 int VoxelChunk::getIndexCount()
 {
 	return indexcount;
+}
+
+glm::i32vec3 VoxelChunk::getChunkLocation()
+{
+	return chunkLocation;
 }
 
