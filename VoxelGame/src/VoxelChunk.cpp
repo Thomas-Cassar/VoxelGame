@@ -4,7 +4,22 @@
 
 #include <iostream>
 
-#define vertexatributecount 6
+#define vertexatributecount 9
+
+glm::vec3 calculateNormal(int vertexArrayIndex, float* vertexarray)
+{
+	//Get location of 3 verticies
+	glm::vec3 Index0(vertexarray[vertexArrayIndex - vertexatributecount * 3], vertexarray[vertexArrayIndex - vertexatributecount * 3 + 1], vertexarray[vertexArrayIndex - vertexatributecount * 3 + 2]);
+	glm::vec3 Index1(vertexarray[vertexArrayIndex - vertexatributecount * 2], vertexarray[vertexArrayIndex - vertexatributecount * 2 + 1], vertexarray[vertexArrayIndex - vertexatributecount * 2 + 2]);
+	glm::vec3 Index2(vertexarray[vertexArrayIndex - vertexatributecount * 1], vertexarray[vertexArrayIndex - vertexatributecount * 1 + 1], vertexarray[vertexArrayIndex - vertexatributecount * 1 + 2]);
+
+	//Get location realtive to index0
+	Index0 = Index0 - Index1;
+	Index2 = Index2 - Index1;
+
+	//Return cross product
+	return glm::normalize(glm::cross(Index0, Index2));
+}
 
 VoxelChunk::VoxelChunk(glm::i32vec3 world)
 	:chunkLocation(world),
@@ -19,7 +34,7 @@ VoxelChunk::VoxelChunk(glm::i32vec3 world)
 		{
 			for (k = 0; k < chunksize + 1; k++)
 			{
-				if (((cnoise.noise((float)(i) / 30, (float)(k) / 30) + 1) * 10) < j)
+				if (k<j)
 				VoxelData[i][j][k] = 1;
 				else
 				VoxelData[i][j][k] = -1;
@@ -53,7 +68,7 @@ VoxelChunk::VoxelChunk(glm::i32vec3 world)
 	
 	vertexarray = new float[vertexfloatcount];
 
-	int color = 0;
+	int triIndex = 0;
 
 	int ind = 0, ver = 0,l;
 	for (i = 0; i < chunksize; i++)
@@ -179,42 +194,50 @@ VoxelChunk::VoxelChunk(glm::i32vec3 world)
 						ver++;
 						break;
 					}
-					if (color == 0)
+					// Add default normal value
+					if (triIndex <3)
 					{
+						vertexarray[ver] = 1.0f;
+						ver++;
+						vertexarray[ver] = 1.0f;
+						ver++;
+						vertexarray[ver] = 1.0f;
+						ver++;
+						triIndex++;
+					}
+					//Add color
 						vertexarray[ver] = 0.1f;
 						ver++;
 						vertexarray[ver] = 0.8f;
 						ver++;
 						vertexarray[ver] = 0.1f;
 						ver++;
-						color++;
-					}
-					else if (color == 1)
-					{
-						vertexarray[ver] = 0.1f;
-						ver++;
-						vertexarray[ver] = 0.8f;
-						ver++;
-						vertexarray[ver] = 0.1f;
-						ver++;
-						color++;
-					}
-					else
-					{
-						vertexarray[ver] = 0.1f;
-						ver++;
-						vertexarray[ver] = 0.8f;
-						ver++;
-						vertexarray[ver] = 0.1f;
-						ver++;
-						color++;
-						color = 0;
-					}
+					//Every 3 indicies calulate normal
+						if (triIndex >= 3)
+						{
+							glm::vec3 normal = calculateNormal(ver, vertexarray);
+
+							//Change already set normal
+							vertexarray[(ver - vertexatributecount * 3) + 3] = normal.x;
+							vertexarray[(ver - vertexatributecount * 2) + 3] = normal.x;
+							vertexarray[(ver - vertexatributecount * 1) + 3] = normal.x;
+
+							vertexarray[(ver - vertexatributecount * 3) + 4] = normal.y;
+							vertexarray[(ver - vertexatributecount * 2) + 4] = normal.y;
+							vertexarray[(ver - vertexatributecount * 1) + 4] = normal.y;
+
+							vertexarray[(ver - vertexatributecount * 3) + 5] = normal.z;
+							vertexarray[(ver - vertexatributecount * 2) + 5] = normal.z;
+							vertexarray[(ver - vertexatributecount * 1) + 5] = normal.z;
+
+							triIndex = 0;
+						}
+					
 				}
 			}
 		}
 	}
-	std::cout << ver << "/" << vertexfloatcount << "verticies made/vertcices allocated " << ind << "/" << indexcount << " indicies made/indicies allocated" << std::endl;
+	std::cout << ver/vertexatributecount << "/" << vertexfloatcount/ vertexatributecount << "verticies made/vertcices allocated " << ind << "/" << indexcount << " indicies made/indicies allocated" << std::endl;
 }
 
 
@@ -249,4 +272,6 @@ glm::i32vec3 VoxelChunk::getChunkLocation()
 {
 	return chunkLocation;
 }
+
+
 

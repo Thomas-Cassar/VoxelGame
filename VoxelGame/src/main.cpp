@@ -12,13 +12,13 @@
 #include "ChunkManager.h"
 
 
-/*
+
 extern "C"
 {//Use High Performance GPU
 	__declspec(dllexport) bool AmdPowerXpressRequestHighPerformance = true;
 	__declspec(dllexport) bool NvOptimusEnablement = true;
 }
-*/
+
 
 const int width = 1280;
 const int height = 720;
@@ -53,7 +53,7 @@ int main()
 	}
 	//Make window current
 	glfwMakeContextCurrent(window);
-	glfwSwapInterval(1);
+	glfwSwapInterval(0);
 
 
 	//Test GLEW is working and output GL Version
@@ -114,6 +114,7 @@ int main()
 
 		vbl.Push<float>(3);
 		vbl.Push<float>(3);
+		vbl.Push<float>(3);
 		va.AddBuffer(vb, vbl);
 
 		renderer.Draw(va, ib, shader);
@@ -132,6 +133,11 @@ int main()
 		//Create MVP matrix
 		mvp = Player1.getPlayerCamera()->GetProjMatrix() * Player1.getPlayerCamera()->GetViewMatrix() * mod;
 		shader.SetUniformMat4f("u_MVP", mvp);
+
+		//Lighting
+		shader.SetUniform3f("lightDirection", 0.3f, -1.0f, 0.5f);
+		shader.SetUniform3f("lightColor", 1.0f,1.0f,1.0f);
+		shader.SetUniform2f("lightBias", 0.3f, 0.8f);
 	}
 
 }
