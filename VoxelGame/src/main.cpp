@@ -20,8 +20,8 @@ extern "C"
 }
 
 
-const int width = 1280;
-const int height = 720;
+const int width = 1920;
+const int height = 1080;
 
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -68,7 +68,6 @@ int main()
 	Shader shader("res/shaders/basic.vertex", "res/shaders/basic.fragment");
 
 	ChunkManager managerofChunks;
-	
 
 	Player Player1(width,height,window);
 	
@@ -85,6 +84,9 @@ int main()
 	GLCall(glEnable(GL_CULL_FACE));
 	GLCall(glCullFace(GL_BACK));
 
+	//Enable depth testing
+	GLCall(glEnable(GL_DEPTH_TEST));
+
 	float currentTime = 0;
 	float lastTime = 0;
 	float deltaTime = 0;
@@ -96,8 +98,11 @@ int main()
 		lastTime = currentTime;
 		currentTime = glfwGetTime();
 		deltaTime = currentTime - lastTime;
-		if(floor(currentTime)-floor(lastTime)==1)
-		std::cout << 1/ deltaTime << "fps" <<std::endl;
+		if (floor(currentTime) - floor(lastTime) == 1)
+		{
+			std::cout << 1 / deltaTime << "fps" << std::endl;
+			std::cout << Player1.getworldLocation().x<<","<< Player1.getworldLocation().y << ","<< Player1.getworldLocation().z << std::endl;
+		}
 
 
 		//Clear frame before starting next
@@ -112,6 +117,7 @@ int main()
 
 		VertexBufferLayout vbl;
 
+		//Layout of buffer is position/normal/color
 		vbl.Push<float>(3);
 		vbl.Push<float>(3);
 		vbl.Push<float>(3);
@@ -133,11 +139,11 @@ int main()
 		//Create MVP matrix
 		mvp = Player1.getPlayerCamera()->GetProjMatrix() * Player1.getPlayerCamera()->GetViewMatrix() * mod;
 		shader.SetUniformMat4f("u_MVP", mvp);
-
 		//Lighting
-		shader.SetUniform3f("lightDirection", 0.3f, -1.0f, 0.5f);
-		shader.SetUniform3f("lightColor", 1.0f,1.0f,1.0f);
+		shader.SetUniform3f("lightDirection", 0.2f, -1.0f, 0.3f);
+		shader.SetUniform3f("lightColor", 1.0f, 1.0f, 0.98f);
 		shader.SetUniform2f("lightBias", 0.3f, 0.8f);
+		
 	}
 
 }

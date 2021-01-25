@@ -6,246 +6,719 @@
 
 #define vertexatributecount 9
 
-glm::vec3 calculateNormal(int vertexArrayIndex, float* vertexarray)
-{
-	//Get location of 3 verticies
-	glm::vec3 Index0(vertexarray[vertexArrayIndex - vertexatributecount * 3], vertexarray[vertexArrayIndex - vertexatributecount * 3 + 1], vertexarray[vertexArrayIndex - vertexatributecount * 3 + 2]);
-	glm::vec3 Index1(vertexarray[vertexArrayIndex - vertexatributecount * 2], vertexarray[vertexArrayIndex - vertexatributecount * 2 + 1], vertexarray[vertexArrayIndex - vertexatributecount * 2 + 2]);
-	glm::vec3 Index2(vertexarray[vertexArrayIndex - vertexatributecount * 1], vertexarray[vertexArrayIndex - vertexatributecount * 1 + 1], vertexarray[vertexArrayIndex - vertexatributecount * 1 + 2]);
-
-	//Get location realtive to index0
-	Index0 = Index0 - Index1;
-	Index2 = Index2 - Index1;
-
-	//Return cross product
-	return glm::normalize(glm::cross(Index0, Index2));
-}
-
 VoxelChunk::VoxelChunk(glm::i32vec3 world)
 	:chunkLocation(world),
 	vertexfloatcount(0),
-	indexcount(0)
+	indexcount(0),
+	indexarray(nullptr),
+	vertexarray(nullptr)
 {
 	SimplexNoise cnoise;
 	int i, j, k;
-	for (i = 0; i < chunksize+1; i++)
+	for (i = 0; i < chunksize+2; i++)
 	{
-		for (j = 0; j < chunksize + 1; j++)
+		for (j = 0; j < chunksize + 2; j++)
 		{
-			for (k = 0; k < chunksize + 1; k++)
+			for (k = 0; k < chunksize + 2; k++)
 			{
-				if (k<j)
+				if (((cnoise.noise((float)(i+chunkLocation.x) / 30, (float)(k+chunkLocation.z) / 30) + 1) * 10) > j)
+				//cube test
+				//if(i==0||j==0||k==0||i==chunksize+1||j==chunksize+1||k==chunksize+1)
 				VoxelData[i][j][k] = 1;
 				else
-				VoxelData[i][j][k] = -1;
+				VoxelData[i][j][k] = 0;
 			}
 		}
 	}
-
-	for (i = 0; i < chunksize; i++)
-	{
-		for (j = 0; j < chunksize; j++)
-		{
-			for (k = 0; k < chunksize; k++)
-			{
-				unsigned char caseCode = ((VoxelData[i][j][k] >> 7) & 0x01)
-					| ((VoxelData[i + 1][j][k] >> 6) & 0x02)
-					| ((VoxelData[i][j + 1][k] >> 5) & 0x04)
-					| ((VoxelData[i + 1][j + 1][k] >> 4) & 0x08)
-					| ((VoxelData[i][j][k + 1] >> 3) & 0x10)
-					| ((VoxelData[i + 1][j][k + 1] >> 2) & 0x20)
-					| ((VoxelData[i][j + 1][k + 1] >> 1) & 0x40)
-					| (VoxelData[i + 1][j + 1][k + 1] & 0x80);
-
-				vertexfloatcount+= regularCellData[regularCellClass[caseCode]].GetVertexCount();
-				indexcount += 3 * regularCellData[regularCellClass[caseCode]].GetTriangleCount();
-			}
-		}
-	}
-	vertexfloatcount *= vertexatributecount;
-
-	indexarray = new unsigned int[indexcount];
+	calculateGeometry();
 	
-	vertexarray = new float[vertexfloatcount];
-
-	int triIndex = 0;
-
-	int ind = 0, ver = 0,l;
-	for (i = 0; i < chunksize; i++)
-	{
-		for (j = 0; j < chunksize; j++)
-		{
-			for (k = 0; k < chunksize; k++)
-			{
-				unsigned char caseCode = ((VoxelData[i][j][k] >> 7) & 0x01)
-					| ((VoxelData[i + 1][j][k] >> 6) & 0x02)
-					| ((VoxelData[i][j + 1][k] >> 5) & 0x04)
-					| ((VoxelData[i + 1][j + 1][k] >> 4) & 0x08)
-					| ((VoxelData[i][j][k + 1] >> 3) & 0x10)
-					| ((VoxelData[i + 1][j][k + 1] >> 2) & 0x20)
-					| ((VoxelData[i][j + 1][k + 1] >> 1) & 0x40)
-					| (VoxelData[i + 1][j + 1][k + 1] & 0x80);
-				
-
-				for (l = 0; l < 3 * regularCellData[regularCellClass[caseCode]].GetTriangleCount(); l++)
-				{
-					indexarray[ind] = ver / vertexatributecount + regularCellData[regularCellClass[caseCode]].vertexIndex[l];
-					ind++;
-				}
-
-				for (l = 0; l < regularCellData[regularCellClass[caseCode]].GetVertexCount(); l++)
-				{
-					switch (regularVertexData[caseCode][l]&0xFF)
-					{
-					case 0x01:
-						vertexarray[ver] = (float)i + 0.5f;
-						ver++;
-						vertexarray[ver] = (float)j;
-						ver++;
-						vertexarray[ver] = (float)k;
-						ver++;
-						break;
-					case 0x13:
-						vertexarray[ver] = (float)i + 1.0f;
-						ver++;
-						vertexarray[ver] = (float)j + 0.5f;
-						ver++;
-						vertexarray[ver] = (float)k;
-						ver++;
-						break;
-					case 0x23:
-						vertexarray[ver] = (float)i + 0.5f;
-						ver++;
-						vertexarray[ver] = (float)j + 1.0f;
-						ver++;
-						vertexarray[ver] = (float)k ;
-						ver++;
-						break;
-					case 0x02:
-						vertexarray[ver] = (float)i;
-						ver++;
-						vertexarray[ver] = (float)j+0.5f ;
-						ver++;
-						vertexarray[ver] = (float)k;
-						ver++;
-						break;
-					case 0x04:
-						vertexarray[ver] = (float)i;
-						ver++;
-						vertexarray[ver] = (float)j ;
-						ver++;
-						vertexarray[ver] = (float)k + 0.5f;
-						ver++;
-						break;
-					case 0x15:
-						vertexarray[ver] = (float)i+1.0f;
-						ver++;
-						vertexarray[ver] = (float)j;
-						ver++;
-						vertexarray[ver] = (float)k + 0.5f;
-						ver++;
-						break;
-					case 0x37:
-						vertexarray[ver] = (float)i + 1.0f;
-						ver++;
-						vertexarray[ver] = (float)j + 1.0f;
-						ver++;
-						vertexarray[ver] = (float)k + 0.5f;
-						ver++;
-						break;
-					case 0x26:
-						vertexarray[ver] = (float)i;
-						ver++;
-						vertexarray[ver] = (float)j + 1.0f;
-						ver++;
-						vertexarray[ver] = (float)k + 0.5f;
-						ver++;
-						break;
-					case 0x45:
-						vertexarray[ver] = (float)i + 0.5f;
-						ver++;
-						vertexarray[ver] = (float)j;
-						ver++;
-						vertexarray[ver] = (float)k + 1.0f;
-						ver++;
-						break;
-					case 0x57:
-						vertexarray[ver] = (float)i + 1.0f;
-						ver++;
-						vertexarray[ver] = (float)j+0.5f;
-						ver++;
-						vertexarray[ver] = (float)k + 1.0f;
-						ver++;
-						break;
-					case 0x67:
-						vertexarray[ver] = (float)i + 0.5f;
-						ver++;
-						vertexarray[ver] = (float)j+1.0f;
-						ver++;
-						vertexarray[ver] = (float)k + 1.0f;
-						ver++;
-						break;
-					case 0x46: 
-						vertexarray[ver] = (float)i;
-						ver++;
-						vertexarray[ver] = (float)j+0.5f;
-						ver++;
-						vertexarray[ver] = (float)k + 1.0f;
-						ver++;
-						break;
-					}
-					// Add default normal value
-					if (triIndex <3)
-					{
-						vertexarray[ver] = 1.0f;
-						ver++;
-						vertexarray[ver] = 1.0f;
-						ver++;
-						vertexarray[ver] = 1.0f;
-						ver++;
-						triIndex++;
-					}
-					//Add color
-						vertexarray[ver] = 0.1f;
-						ver++;
-						vertexarray[ver] = 0.8f;
-						ver++;
-						vertexarray[ver] = 0.1f;
-						ver++;
-					//Every 3 indicies calulate normal
-						if (triIndex >= 3)
-						{
-							glm::vec3 normal = calculateNormal(ver, vertexarray);
-
-							//Change already set normal
-							vertexarray[(ver - vertexatributecount * 3) + 3] = normal.x;
-							vertexarray[(ver - vertexatributecount * 2) + 3] = normal.x;
-							vertexarray[(ver - vertexatributecount * 1) + 3] = normal.x;
-
-							vertexarray[(ver - vertexatributecount * 3) + 4] = normal.y;
-							vertexarray[(ver - vertexatributecount * 2) + 4] = normal.y;
-							vertexarray[(ver - vertexatributecount * 1) + 4] = normal.y;
-
-							vertexarray[(ver - vertexatributecount * 3) + 5] = normal.z;
-							vertexarray[(ver - vertexatributecount * 2) + 5] = normal.z;
-							vertexarray[(ver - vertexatributecount * 1) + 5] = normal.z;
-
-							triIndex = 0;
-						}
-					
-				}
-			}
-		}
-	}
-	std::cout << ver/vertexatributecount << "/" << vertexfloatcount/ vertexatributecount << "verticies made/vertcices allocated " << ind << "/" << indexcount << " indicies made/indicies allocated" << std::endl;
 }
 
 
 
 VoxelChunk::~VoxelChunk()
 {
-	delete vertexarray;
-	delete indexarray;
+	delete[] vertexarray;
+	delete[] indexarray;
+}
+
+void VoxelChunk::calculateGeometry()
+{
+	//Get rid of existing data
+	delete[] vertexarray;
+	delete[] indexarray;
+
+	int i, j, k;
+	//Create two arrays at their maximum size (reduced after number is known)
+	vertexarray = new float[vertexmax];
+	indexarray = new unsigned int[indexmax];
+
+	//Loop through every voxel
+	for (i = 1; i < chunksize + 1; i++)
+	{
+		for (j = 1; j < chunksize + 1; j++)
+		{
+			for (k = 1; k < chunksize + 1; k++)
+			{
+				//If there's a solid block we check each face to see if it borders air
+				if (VoxelData[i][j][k] != 0)
+				{
+					//Check +x
+					if (VoxelData[i + 1][j][k] == 0)//If empty in positve X direction add face at +x
+					{
+						//Location
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Triangles
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 3;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 1;
+						indexcount++;
+					}
+
+					//Check -X
+					if (VoxelData[i - 1][j][k] == 0)//If empty in negative X direction add face at -x
+					{
+						//Location
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = -1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = -1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = -1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = -1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Triangles
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 3;
+						indexcount++;
+
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 1;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+					}
+
+					//Check +y
+					if (VoxelData[i][j + 1][k] == 0)//If empty in positve Y direction add face at +Y
+					{
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal and Color
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal and Color
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal and Color
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal and Color
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+
+						//Triangles
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 3;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 1;
+						indexcount++;
+					}
+
+					//Check -y
+					if (VoxelData[i][j - 1][k] == 0)//If empty in negative Y direction add face at -Y
+					{
+						//Location
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = -1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = -1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = -1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = -1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Triangles
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 3;
+						indexcount++;
+
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 1;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+					}
+
+					//Check +Z
+					if (VoxelData[i][j][k + 1] == 0)//If empty in positve Z direction add face at +Z
+					{
+						//Location
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+						
+						//Location
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k + 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Triangles
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 3;
+						indexcount++;
+
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 1;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+					}
+
+					//Check -Z
+					if (VoxelData[i][j][k - 1] == 0)//If empty in negative Z direction add face at -Z
+					{
+						//Location
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = -1.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Location
+						vertexarray[vertexfloatcount] = (float)i - 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)j + 0.5f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = (float)k - 0.5f;
+						vertexfloatcount++;
+						//Normal
+						vertexarray[vertexfloatcount] = 1.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.0f;
+						vertexfloatcount++;
+						//Color
+						vertexarray[vertexfloatcount] = 0.39f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.26f;
+						vertexfloatcount++;
+						vertexarray[vertexfloatcount] = 0.13f;
+						vertexfloatcount++;
+
+						//Triangles
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 3;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 4;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 2;
+						indexcount++;
+						indexarray[indexcount] = vertexfloatcount / vertexatributecount - 1;
+						indexcount++;
+					}
+				}
+			}
+		}
+	}
+	//Pointers to old arrays
+	float* tempvertex = vertexarray;
+	unsigned int* tempindex = indexarray;
+
+	//Create new smaller array
+	vertexarray = new float[vertexfloatcount];
+	indexarray = new unsigned int[indexcount];
+
+	//Copy and delete old large arrays
+	for (i = 0; i < vertexfloatcount; i++)
+	{
+		vertexarray[i] = tempvertex[i];
+	}
+	delete[] tempvertex;
+	for (i = 0; i < indexcount; i++)
+	{
+		indexarray[i] = tempindex[i];
+	}
+	delete[] tempindex;
 }
 
 float* VoxelChunk::getVertexArray()

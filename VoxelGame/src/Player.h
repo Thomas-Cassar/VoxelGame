@@ -7,7 +7,7 @@ class Player {
 private:
 	Camera playerCamera;
 	GLFWwindow* windowPointer;
-	float playerSpeed = 50.0f;
+	float playerSpeed = 25.0f;
 public:
 	Player(int windowwidth,int windowheight,GLFWwindow* windowContext);
 	glm::vec3 getworldLocation();
