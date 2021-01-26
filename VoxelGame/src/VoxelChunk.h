@@ -1,7 +1,8 @@
 #pragma once
 #include "glm\glm.hpp"
-
-#define chunksize 32
+#include "VertexArray.h"
+#include "IndexBuffer.h"
+#include "VoxelConstants.h"
 
 class VoxelChunk {
 private:
@@ -9,15 +10,15 @@ private:
 	glm::i32vec3 chunkLocation;
 	int vertexfloatcount, indexcount;
 	int vertexmax=1500000, indexmax=1000000;//Initial size of array of vertex and index until reallocated into actual size
-	float* vertexarray;
-	unsigned int* indexarray;
+	VertexBuffer* vb;
+	IndexBuffer* ib;
 public:
 	VoxelChunk(glm::i32vec3 world);
 	~VoxelChunk();
 	void calculateGeometry();
-	float* getVertexArray();
 	int getVertexFloatCount();
-	unsigned int* getIndexArray();
 	int getIndexCount();
+	VertexBuffer* getVertexBuffer();
+	IndexBuffer* getIndexBuffer();
 	glm::i32vec3 getChunkLocation();
 };

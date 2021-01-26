@@ -66,14 +66,16 @@ int main()
 {
 	Renderer renderer;
 	Shader shader("res/shaders/basic.vertex", "res/shaders/basic.fragment");
+	//Lighting
+	shader.Bind();
+	shader.SetUniform3f("lightDirection", 0.2f, -1.0f, 0.3f);
+	shader.SetUniform3f("lightColor", 1.0f, 1.0f, 0.98f);
+	shader.SetUniform2f("lightBias", 0.5f, 0.6f);
+	shader.Unbind();
 
 	ChunkManager managerofChunks;
 
 	Player Player1(width,height,window);
-	
-	glm::mat4 mvp;
-	
-	glm::mat4 mod = glm::mat4(1.0f);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -91,6 +93,8 @@ int main()
 	float lastTime = 0;
 	float deltaTime = 0;
 
+	managerofChunks.updateChunks(glm::i32vec3(0, 0, 0));
+	
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
@@ -108,22 +112,8 @@ int main()
 		//Clear frame before starting next
 		renderer.Clear();
 
-		managerofChunks.updateChunks(glm::i32vec3(0,0,0));
-
-		//Draw new frame
-		VertexArray va;
-		IndexBuffer ib(managerofChunks.getActiveChunks().at(0)->getIndexArray(), managerofChunks.getActiveChunks().at(0)->getIndexCount());
-		VertexBuffer vb(managerofChunks.getActiveChunks().at(0)->getVertexArray(), managerofChunks.getActiveChunks().at(0)->getVertexFloatCount() * sizeof(float));
-
-		VertexBufferLayout vbl;
-
-		//Layout of buffer is position/normal/color
-		vbl.Push<float>(3);
-		vbl.Push<float>(3);
-		vbl.Push<float>(3);
-		va.AddBuffer(vb, vbl);
-
-		renderer.Draw(va, ib, shader);
+		managerofChunks.updateChunks(Player1.getChunkLocation());
+		managerofChunks.drawChunks(renderer,shader,*Player1.getPlayerCamera());
 
 		// Swap front and back buffers
 		glfwSwapBuffers(window);
@@ -136,13 +126,7 @@ int main()
 		Player1.getPlayerCamera()->newMousepos((float)xpos, (float)ypos);
 		Player1.updatePlayerInput(deltaTime);
 
-		//Create MVP matrix
-		mvp = Player1.getPlayerCamera()->GetProjMatrix() * Player1.getPlayerCamera()->GetViewMatrix() * mod;
-		shader.SetUniformMat4f("u_MVP", mvp);
-		//Lighting
-		shader.SetUniform3f("lightDirection", 0.2f, -1.0f, 0.3f);
-		shader.SetUniform3f("lightColor", 1.0f, 1.0f, 0.98f);
-		shader.SetUniform2f("lightBias", 0.3f, 0.8f);
+		
 		
 	}
 

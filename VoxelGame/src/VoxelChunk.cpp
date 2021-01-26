@@ -4,14 +4,12 @@
 
 #include <iostream>
 
-#define vertexatributecount 9
-
 VoxelChunk::VoxelChunk(glm::i32vec3 world)
 	:chunkLocation(world),
 	vertexfloatcount(0),
 	indexcount(0),
-	indexarray(nullptr),
-	vertexarray(nullptr)
+	ib(nullptr),
+	vb(nullptr)
 {
 	SimplexNoise cnoise;
 	int i, j, k;
@@ -21,7 +19,7 @@ VoxelChunk::VoxelChunk(glm::i32vec3 world)
 		{
 			for (k = 0; k < chunksize + 2; k++)
 			{
-				if (((cnoise.noise((float)(i+chunkLocation.x) / 30, (float)(k+chunkLocation.z) / 30) + 1) * 10) > j)
+				if (((cnoise.noise((float)(i+chunkLocation.x*chunksize-1) / 30, (float)(k+chunkLocation.z*chunksize-1) / 30) + 1) * 10) > (j+chunkLocation.y * chunksize - 1))
 				//cube test
 				//if(i==0||j==0||k==0||i==chunksize+1||j==chunksize+1||k==chunksize+1)
 				VoxelData[i][j][k] = 1;
@@ -38,20 +36,21 @@ VoxelChunk::VoxelChunk(glm::i32vec3 world)
 
 VoxelChunk::~VoxelChunk()
 {
-	delete[] vertexarray;
-	delete[] indexarray;
+	delete ib;
+	delete vb;
 }
 
 void VoxelChunk::calculateGeometry()
 {
-	//Get rid of existing data
-	delete[] vertexarray;
-	delete[] indexarray;
-
-	int i, j, k;
 	//Create two arrays at their maximum size (reduced after number is known)
-	vertexarray = new float[vertexmax];
-	indexarray = new unsigned int[indexmax];
+	float* vertexarray = new float[vertexmax];
+	unsigned int* indexarray = new unsigned int[indexmax];
+	//Counter variables for each array
+	vertexfloatcount = 0;
+	indexcount = 0;
+
+	//3D loop variables
+	int i, j, k;
 
 	//Loop through every voxel
 	for (i = 1; i < chunksize + 1; i++)
@@ -700,45 +699,36 @@ void VoxelChunk::calculateGeometry()
 			}
 		}
 	}
-	//Pointers to old arrays
-	float* tempvertex = vertexarray;
-	unsigned int* tempindex = indexarray;
 
-	//Create new smaller array
-	vertexarray = new float[vertexfloatcount];
-	indexarray = new unsigned int[indexcount];
+	//Create vertex buffer out of calculated data
+	vb = new VertexBuffer(vertexarray,vertexfloatcount*sizeof(float));
+	//Create index buffer out of calculated data
+	ib = new IndexBuffer(indexarray, indexcount);
 
-	//Copy and delete old large arrays
-	for (i = 0; i < vertexfloatcount; i++)
-	{
-		vertexarray[i] = tempvertex[i];
-	}
-	delete[] tempvertex;
-	for (i = 0; i < indexcount; i++)
-	{
-		indexarray[i] = tempindex[i];
-	}
-	delete[] tempindex;
+	//Delete temp buffers
+	delete[] vertexarray;
+	delete[] indexarray;
 }
 
-float* VoxelChunk::getVertexArray()
-{
-	return vertexarray;
-}
 
 int VoxelChunk::getVertexFloatCount()
 {
 	return vertexfloatcount;
 }
 
-unsigned int* VoxelChunk::getIndexArray()
-{
-	return indexarray;
-}
-
 int VoxelChunk::getIndexCount()
 {
 	return indexcount;
+}
+
+VertexBuffer* VoxelChunk::getVertexBuffer()
+{
+	return vb;
+}
+
+IndexBuffer* VoxelChunk::getIndexBuffer()
+{
+	return ib;
 }
 
 glm::i32vec3 VoxelChunk::getChunkLocation()

@@ -11,6 +11,14 @@ glm::vec3 Player::getworldLocation()
 	return playerCamera.GetTranslation();
 }
 
+glm::i32vec3 Player::getChunkLocation()
+{
+	return glm::i32vec3(
+		static_cast <int> (std::floor(getworldLocation().x / chunksize)), 
+		static_cast <int> (std::floor(getworldLocation().y / chunksize)), 
+		static_cast <int> (std::floor(getworldLocation().z / chunksize)));
+}
+
 Camera* Player::getPlayerCamera()
 {
 	return &playerCamera;

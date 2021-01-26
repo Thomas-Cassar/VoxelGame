@@ -45,6 +45,7 @@
     <ClInclude Include="src\VertexArray.h" />
     <ClInclude Include="src\VertexBufferLayout.h" />
     <ClInclude Include="src\VoxelChunk.h" />
+    <ClInclude Include="src\VoxelConstants.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\basic.fragment" />
