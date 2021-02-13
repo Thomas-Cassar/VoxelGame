@@ -7,6 +7,7 @@
 class VoxelChunk {
 private:
 	unsigned char VoxelData[chunksize+2][chunksize+2][chunksize+2];
+	bool isEmpty;
 	glm::i32vec3 chunkLocation;
 	int vertexfloatcount, indexcount;
 	int vertexmax=1500000, indexmax=1000000;//Initial size of array of vertex and index until reallocated into actual size
@@ -18,6 +19,7 @@ public:
 	void calculateGeometry();
 	int getVertexFloatCount();
 	int getIndexCount();
+	bool getisEmpty();
 	VertexBuffer* getVertexBuffer();
 	IndexBuffer* getIndexBuffer();
 	glm::i32vec3 getChunkLocation();

@@ -11,6 +11,8 @@
 
 #include "ChunkManager.h"
 
+#include "VoxelConstants.h"
+
 
 
 extern "C"
@@ -20,8 +22,7 @@ extern "C"
 }
 
 
-const int width = 1920;
-const int height = 1080;
+
 
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -45,7 +46,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	//Create window and ensure creation
-	window = glfwCreateWindow(width, height, "Voxel Test", NULL, NULL);
+	window = glfwCreateWindow(winWidth, winHeight, "Voxel Test", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -75,7 +76,7 @@ int main()
 
 	ChunkManager managerofChunks;
 
-	Player Player1(width,height,window);
+	Player Player1(winWidth,winHeight,window);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 

@@ -6,12 +6,14 @@
 
 VoxelChunk::VoxelChunk(glm::i32vec3 world)
 	:chunkLocation(world),
+	isEmpty(true),
 	vertexfloatcount(0),
 	indexcount(0),
 	ib(nullptr),
 	vb(nullptr)
 {
-	SimplexNoise cnoise;
+	SimplexNoise cnoise(1/30.0f,1.0f);
+	
 	int i, j, k;
 	for (i = 0; i < chunksize+2; i++)
 	{
@@ -19,15 +21,19 @@ VoxelChunk::VoxelChunk(glm::i32vec3 world)
 		{
 			for (k = 0; k < chunksize + 2; k++)
 			{
-				if (((cnoise.noise((float)(i+chunkLocation.x*chunksize-1) / 30, (float)(k+chunkLocation.z*chunksize-1) / 30) + 1) * 10) > (j+chunkLocation.y * chunksize - 1))
-				//cube test
-				//if(i==0||j==0||k==0||i==chunksize+1||j==chunksize+1||k==chunksize+1)
-				VoxelData[i][j][k] = 1;
+				if (cnoise.fractal(1,(float)(i + chunkLocation.x * chunksize - 1), (float)(k + chunkLocation.z * chunksize - 1))*10  > (j + chunkLocation.y * chunksize - 1))
+					//cube test
+					//if(i==0||j==0||k==0||i==chunksize+1||j==chunksize+1||k==chunksize+1)
+				{
+					VoxelData[i][j][k] = 1;
+					isEmpty = false;
+				}
 				else
 				VoxelData[i][j][k] = 0;
 			}
 		}
 	}
+	if(!getisEmpty())//If not empty calculate geo data
 	calculateGeometry();
 	
 }
@@ -719,6 +725,11 @@ int VoxelChunk::getVertexFloatCount()
 int VoxelChunk::getIndexCount()
 {
 	return indexcount;
+}
+
+bool VoxelChunk::getisEmpty()
+{
+	return isEmpty;
 }
 
 VertexBuffer* VoxelChunk::getVertexBuffer()

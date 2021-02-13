@@ -16,6 +16,7 @@ private:
 	std::vector<VoxelChunk*> ActiveChunks;
 	VertexArray va;
 	VertexBufferLayout vbl;
+	bool isinFrustrum(glm::mat4 perspective,glm::i32vec3 chunkLocation);
 public:
 	ChunkManager();
 	~ChunkManager();
