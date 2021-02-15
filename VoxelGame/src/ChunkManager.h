@@ -13,14 +13,15 @@
 class ChunkManager {
 private:
 	int chunkCount;
-	std::vector<VoxelChunk*> ActiveChunks;
+	glm::i32vec3 prevLocation= glm::i32vec3(0, 0, 0);
+	VoxelChunk* ActiveChunks[HorizontalRenderDistance * 2 + 1][verticalRenderDistance * 2 + 1][HorizontalRenderDistance * 2 + 1] = { nullptr };
 	VertexArray va;
 	VertexBufferLayout vbl;
 	bool isinFrustrum(glm::mat4 perspective,glm::i32vec3 chunkLocation);
+	int modPos(int a, int b);
 public:
 	ChunkManager();
 	~ChunkManager();
 	void updateChunks(glm::i32vec3 currentChunk);
 	void drawChunks(const Renderer& rend, Shader& shad,Camera& cam);
-	std::vector <VoxelChunk*> getActiveChunks();
 };

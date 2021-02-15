@@ -61,6 +61,12 @@ bool ChunkManager::isinFrustrum(glm::mat4 perspective, glm::i32vec3 chunkLocatio
 	return false;
 }
 
+int ChunkManager::modPos(int a, int b)
+{
+	int c = a % b;
+	return c>=0 ?c:c+b;
+}
+
 ChunkManager::ChunkManager()
 	:chunkCount(0)
 {
@@ -72,84 +78,114 @@ ChunkManager::ChunkManager()
 
 ChunkManager::~ChunkManager()
 {
-	for (int i = 0; i < ActiveChunks.size(); i++)
+	for (int i = 0; i < HorizontalRenderDistance * 2 + 1; i++)
 	{
-		delete ActiveChunks[i];
+		for (int j = 0; j < verticalRenderDistance * 2 + 1; j++)
+		{
+			for (int k = 0; k < HorizontalRenderDistance * 2 + 1; k++)
+			{
+				delete ActiveChunks[i][j][k];
+			}
+		}
 	}
+		
 }
 
 void ChunkManager::updateChunks(glm::i32vec3 currentChunk)
 {
+	//If all in render distance generated and in same chunk then no update needed
+	if ((chunkCount == maxChunks)&&prevLocation==currentChunk)
+		return;
+	prevLocation = currentChunk;//Set previous location for next check
+
 	//find all chunks within render distance and check if generated
-	bool currentgenerated = false;
 	int chunksGenerated = 0;
-	for (int i = currentChunk.x-HorizontalRenderDistance; i <= currentChunk.x + HorizontalRenderDistance; i++)
+	
+	for (int i = currentChunk.x-HorizontalRenderDistance; i <= currentChunk.x+HorizontalRenderDistance; i++)
 	{
-		for (int j = currentChunk.y - verticalRenderDistance; j <= currentChunk.y + verticalRenderDistance; j++)
+		for (int j = currentChunk.y-verticalRenderDistance; j <= currentChunk.y+verticalRenderDistance; j++)
 		{
 			for (int k = currentChunk.z - HorizontalRenderDistance; k <= currentChunk.z + HorizontalRenderDistance; k++)
 			{
-				for (int l = 0; l < ActiveChunks.size(); l++)
+				//Array index values for chunk were looking at 
+				int x = modPos(i, HorizontalRenderDistance * 2 + 1);
+				int y = modPos(j, verticalRenderDistance * 2 + 1);
+				int z = modPos(k, HorizontalRenderDistance * 2 + 1);
+
+				//We see if this location of the chunk is out of render distance and if so delete it
+				if (ActiveChunks[x][y][z] != nullptr)
 				{
-					if (ActiveChunks[l]->getChunkLocation() == glm::i32vec3(i,j,k))
+					glm::i32vec3 loc = ActiveChunks[x][y][z]->getChunkLocation();
+					if (loc.x< currentChunk.x - HorizontalRenderDistance || loc.x>currentChunk.x + HorizontalRenderDistance ||
+						loc.z< currentChunk.z - HorizontalRenderDistance || loc.z>currentChunk.z + HorizontalRenderDistance ||
+						loc.y< currentChunk.y - verticalRenderDistance || loc.y>currentChunk.y + verticalRenderDistance
+						)
 					{
-						currentgenerated = true;
-						break;
+						delete ActiveChunks[x][y][z];
+						ActiveChunks[x][y][z] = nullptr;
+						chunkCount--;
 					}
 				}
-				if (currentgenerated == false)
+
+				//If this chunk is not generated and we have not exceeded max updates this frame we make new chunk
+				if (ActiveChunks[x][y][z] == nullptr && chunksGenerated < chunkUpdatesPerFrame)
 				{
-					VoxelChunk* tempChunk;
-					tempChunk = new VoxelChunk(glm::i32vec3(i,j,k));
-					ActiveChunks.push_back(tempChunk);
-					
-					chunksGenerated++;
-					if (chunksGenerated >= chunkUpdatesPerFrame)
-						return;
+					//If not created create a new chunk at specified index and position in render distance
+					ActiveChunks[x][y][z] = new VoxelChunk(glm::i32vec3(i, j, k));
+
+					//Add to amount of chunks generated in this update
+					chunksGenerated++;	
+
+					//Add to total amount of chunks
+					chunkCount++;
 				}
-				currentgenerated = false;
 			}
 		}
 	}
 	
 }
+
 
 void ChunkManager::drawChunks(const Renderer& rend,Shader& shad,Camera& cam)
 {
 	glm::mat4 mvp;
-	for (int i = 0; i < ActiveChunks.size(); i++)
+	for (int i = 0; i < HorizontalRenderDistance*2+1; i++)
 	{
-		if (ActiveChunks[i]->getisEmpty())
+		for (int j = 0; j < verticalRenderDistance * 2 + 1; j++)
 		{
-			//If chunk is empty do nothing
-		}
-		else if (ActiveChunks[i]->getIndexBuffer() == nullptr || ActiveChunks[i]->getVertexBuffer() == nullptr)
-
-		{
-			std::cerr << "Null pointer for index buffer/vertex buffer" << std::endl;
-			exit(1);
-		}
-		else
-		{
-			if (isinFrustrum(cam.GetProjMatrix() *cam.GetViewMatrix(),ActiveChunks[i]->getChunkLocation()))
+			for (int k = 0; k < HorizontalRenderDistance * 2 + 1; k++)
 			{
-				//Create MVP matrix
-				glm::mat4 mod = glm::translate(glm::mat4(1.0f), glm::vec3(ActiveChunks[i]->getChunkLocation() * chunksize));
-				mvp = cam.GetProjMatrix() * cam.GetViewMatrix() * mod;
-				shad.Bind();
-				shad.SetUniformMat4f("u_MVP", mvp);
-				shad.Unbind();
+				if (ActiveChunks[i][j][k] == nullptr)
+				{
+					//If not generated do nothing
+				}
+				else if (ActiveChunks[i][j][k]->getisEmpty())
+				{
+					//If chunk is empty do nothing
+				}
+				else if (ActiveChunks[i][j][k]->getIndexBuffer() == nullptr || ActiveChunks[i][j][k]->getVertexBuffer() == nullptr)
 
-				va.AddBuffer(*ActiveChunks[i]->getVertexBuffer(), vbl);
-				rend.Draw(va, *ActiveChunks[i]->getIndexBuffer(), shad);
+				{
+					std::cerr << "Null pointer for index buffer/vertex buffer" << std::endl;
+					exit(1);
+				}
+				else
+				{
+					if (isinFrustrum(cam.GetProjMatrix() * cam.GetViewMatrix(), ActiveChunks[i][j][k]->getChunkLocation()))
+					{
+						//Create MVP matrix
+						glm::mat4 mod = glm::translate(glm::mat4(1.0f), glm::vec3(ActiveChunks[i][j][k]->getChunkLocation() * chunksize));
+						mvp = cam.GetProjMatrix() * cam.GetViewMatrix() * mod;
+						shad.Bind();
+						shad.SetUniformMat4f("u_MVP", mvp);
+						shad.Unbind();
+
+						va.AddBuffer(*ActiveChunks[i][j][k]->getVertexBuffer(), vbl);
+						rend.Draw(va, *ActiveChunks[i][j][k]->getIndexBuffer(), shad);
+					}
+				}
+			}
 			}
 		}
-	}
-	
-
-}
-
-std::vector<VoxelChunk*> ChunkManager::getActiveChunks()
-{
-	return ActiveChunks;
+		
 }

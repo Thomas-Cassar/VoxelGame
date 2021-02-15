@@ -17,13 +17,12 @@ VoxelChunk::VoxelChunk(glm::i32vec3 world)
 	int i, j, k;
 	for (i = 0; i < chunksize+2; i++)
 	{
-		for (j = 0; j < chunksize + 2; j++)
+		for (k = 0; k < chunksize + 2; k++)
 		{
-			for (k = 0; k < chunksize + 2; k++)
+			float fractalResult = cnoise.fractal(1, (float)(i + chunkLocation.x * chunksize - 1), (float)(k + chunkLocation.z * chunksize - 1)) * 10;
+			for (j = 0; j < chunksize + 2; j++)
 			{
-				if (cnoise.fractal(1,(float)(i + chunkLocation.x * chunksize - 1), (float)(k + chunkLocation.z * chunksize - 1))*10  > (j + chunkLocation.y * chunksize - 1))
-					//cube test
-					//if(i==0||j==0||k==0||i==chunksize+1||j==chunksize+1||k==chunksize+1)
+				if ( fractalResult > (j + chunkLocation.y * chunksize - 1))
 				{
 					VoxelData[i][j][k] = 1;
 					isEmpty = false;

@@ -1,7 +1,7 @@
 #include "Camera.h"
 
 Camera::Camera(int widthin, int heightin)
-	:Translation(4.0f, 3.0f, 3.0f),
+	:Translation(0.0f, 0.0f, 0.0f),
 	lastmousex(0.0f),
 	lastmousey(0.0f),
 	pitch(0.0f),
